@@ -1,6 +1,6 @@
 services:
     api1: &api
-        build: ./api/
+        image: felipecassiano/api-rinha:latest
         environment:
             - REDIS_URL=redis://redis:6379
             - APP_PORT=3000
@@ -24,7 +24,7 @@ services:
                     memory: "40MB"
 
     worker:
-        build: ./worker/
+        image: felipecassiano/worker-rinha:latest
         environment:
             - REDIS_URL=redis://redis:6379
             - PROCESSOR_DEFAULT=http://payment-processor-default:8080

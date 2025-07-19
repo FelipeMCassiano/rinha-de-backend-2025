@@ -12,22 +12,24 @@ const connection = new IORedis(process.env.REDIS_URL!, {
     maxRetriesPerRequest: null,
 });
 
-const worker = new Worker(
-    QUEUE_KEY,
-    async (job) => {
-        const payment: Payment = job.data;
+(async function runWorker() {
+    new Worker(
+        QUEUE_KEY,
+        async (job) => {
+            const payment: Payment = job.data;
 
-        const correlationId = payment.correlationId;
+            const correlationId = payment.correlationId;
 
-        const exists = await existCorrelation(correlationId);
+            const exists = await existCorrelation(correlationId);
 
-        if (exists) return;
+            if (exists) return;
 
-        payment.requestedAt = new Date().toISOString();
+            payment.requestedAt = new Date().toISOString();
 
-        await processPayment(payment);
+            await processPayment(payment);
 
-        await registerCorrelation(correlationId);
-    },
-    { connection }
-);
+            await registerCorrelation(correlationId);
+        },
+        { connection }
+    );
+});
