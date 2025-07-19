@@ -1,24 +1,15 @@
 import Redis from "ioredis";
-import { Payment } from "../models/payment";
 import { queue } from "./configs";
+import { Payment } from "./models";
 
 const redis = new Redis(process.env.REDIS_URL!);
 
 const PROCESSOR_DEFAULT = process.env.PROCESSOR_DEFAULT!;
 const PROCESSOR_FALLBACK = process.env.PROCESSOR_FALLBACK!;
 
-const savePayment = async (
-    processor: "default" | "fallback",
-    payment: Payment
-) => {
-    const key = "payments: " + processor;
-    await redis.lpush(key, JSON.stringify(payment));
-};
+const CORR_SET = "set:correlations";
 
 export const processPayment = async (payment: Payment) => {
-    console.log("default " + PROCESSOR_DEFAULT);
-    console.log("fallback " + PROCESSOR_FALLBACK);
-
     let resp = await sendToProcessor(PROCESSOR_DEFAULT, payment);
     if (resp.status === 200) {
         await savePayment("default", payment);
@@ -30,7 +21,6 @@ export const processPayment = async (payment: Payment) => {
         await savePayment("fallback", payment);
         return;
     }
-    console.log(resp);
 
     await queue.add("payment", payment);
 };
@@ -48,4 +38,20 @@ const sendToProcessor = async (
     });
 
     return resp;
+};
+
+const savePayment = async (
+    processor: "default" | "fallback",
+    payment: Payment
+) => {
+    const key = "payments: " + processor;
+    const score = new Date(payment.requestedAt!).getTime();
+    await redis.zadd(key, score, JSON.stringify(payment));
+};
+export const registerCorrelation = async (correlationId: string) => {
+    await redis.sadd(CORR_SET, correlationId);
+};
+
+export const existCorrelation = async (correlationId: string) => {
+    return await redis.sismember(CORR_SET, correlationId);
 };

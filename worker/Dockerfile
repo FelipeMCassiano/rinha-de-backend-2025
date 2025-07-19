@@ -4,8 +4,10 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install
+RUN npm install 
 
 COPY . .
 
-CMD [ "npm", "start" ]
+RUN npx tsc
+
+CMD [ "node", "src/worker.js" ]

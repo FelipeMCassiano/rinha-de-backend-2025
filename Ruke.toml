@@ -5,7 +5,7 @@ commands = ["docker compose -f ./payment-processor/docker-compose.yml up -d","do
 commands = ["npm --prefix api/ start", "npm --prefix worker/ start"]
 
 [tasks.restart]
-commands = ["docker compose down", "docker system prune -a --volumes"]
+commands = ["docker compose down", "docker compose up -d"]
 
 [tasks.test]
 commands = ["k6 run rinha-test/rinha.js"]

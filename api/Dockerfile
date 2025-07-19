@@ -8,5 +8,7 @@ RUN npm install
 
 COPY . .
 
-CMD [ "npm", "start" ]
+RUN npx tsc
+
+CMD [ "node", "src/server.js" ]
 

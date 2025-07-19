@@ -1,7 +1,7 @@
 import Redis from "ioredis";
 import { Payment, Summary } from "./models";
 
-const redis = new Redis(process.env.REDIS_URL!);
+export const redis = new Redis(process.env.REDIS_URL!);
 
 export const processSummary = async (from?: string, to?: string) => {
     const [defaultSummary, fallbackSummary] = await Promise.all([
@@ -22,26 +22,25 @@ const getSummary = async (
 ): Promise<Summary> => {
     const key = "payments: " + processor;
 
-    const results = await redis.lrange(key, 0, -1);
-    const payments = results
-        .map((p) => {
-            const payment: Payment = JSON.parse(p);
+    const min = from ? new Date(from).getTime() : "+inf";
+    const max = to ? new Date(to).getTime() : "-inf";
 
-            return payment;
-        })
-        .filter((p) => {
-            const paymentDate = Date.parse(p.requestedAt!);
+    const results = await redis.zrangebyscore(key, min, max);
 
-            return (
-                (!from || paymentDate >= new Date(from).getTime()) &&
-                (!to || paymentDate <= new Date(to).getTime())
-            );
-        });
+    let totalAmount = 0;
+
+    const payments = results.map((p) => {
+        const payment: Payment = JSON.parse(p);
+
+        totalAmount += payment.amount;
+
+        return payment;
+    });
 
     const summary: Summary = {
         [processor]: {
             totalRequests: payments.length,
-            totalAmount: payments.reduce((acc, i) => acc + i.amount, 0),
+            totalAmount: totalAmount,
         },
     };
 

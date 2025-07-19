@@ -1,28 +1,27 @@
 services:
-    api1:
+    api1: &api
         build: ./api/
         environment:
             - REDIS_URL=redis://redis:6379
-            - APP_PORT=3001
-        ports:
-            - "3001:3001"
+            - APP_PORT=3000
         networks:
             - backend
             - payment-processor
         depends_on:
             - redis
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.15"
+                    memory: "40MB"
+
     api2:
-        build: ./api/
-        environment:
-            - REDIS_URL=redis://redis:6379
-            - APP_PORT=3002
-        ports:
-            - "3002:3002"
-        networks:
-            - backend
-            - payment-processor
-        depends_on:
-            - redis
+        <<: *api
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.15"
+                    memory: "40MB"
 
     worker:
         build: ./worker/
@@ -35,6 +34,11 @@ services:
             - payment-processor
         depends_on:
             - redis
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.80"
+                    memory: "180MB"
     nginx:
         image: nginx
         container_name: nginx
@@ -48,7 +52,7 @@ services:
         deploy:
             resources:
                 limits:
-                    cpus: "0.2"
+                    cpus: "0.20"
                     memory: "50MB"
         networks:
             - backend
@@ -59,6 +63,11 @@ services:
             - "6379:6379"
         networks:
             - backend
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.20"
+                    memory: "50MB"
 networks:
     backend:
         driver: bridge
